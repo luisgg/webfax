@@ -1,0 +1,2 @@
+php-mail php-mail-mimedecode php-mail-mime php-pear php5-ldap
+
