@@ -48,6 +48,172 @@
 <?php
   if (isset($_SESSION['valid_user'])) {
     echo "Bienvenido, " . $_SESSION['valid_user'] . "<br>";
+
+// Pear library includes
+// You should have the pear lib installed
+include_once('Mail.php');
+include_once('Mail/mime.php');
+
+//Settings 
+include_once('config.inc.php');
+
+$errors ='';
+
+if(isset($_POST['submit']))
+{
+	//Get the uploaded file information
+	$name_of_uploaded_file =  basename($_FILES['uploaded_file']['name']);
+	
+	//get the file extension of the file
+	$type_of_uploaded_file = substr($name_of_uploaded_file, 
+							strrpos($name_of_uploaded_file, '.') + 1);
+	
+	$size_of_uploaded_file = $_FILES["uploaded_file"]["size"]/1024;
+	
+	///------------Do Validations-------------
+	if(empty($_POST['name'])||empty($_POST['fax']))
+	{
+		$errors .= "\n Name and Email are required fields. ";	
+	}
+	$user_email=$_REQUEST['userid'].'@'.$config["mail_domain"];
+	if(IsInjected($user_email))
+	{
+		$errors .= "\n Bad email value!";
+	}
+	
+	if($size_of_uploaded_file > $config['max_allowed_file_size'] ) 
+	{
+		$errors .= "\n Size of file should be less than ". $config['max_allowed_file_size'];
+	}
+	
+	//------ Validate the file extension -----
+	$allowed_ext = false;
+	for($i=0; $i<sizeof($config['allowed_extensions']); $i++) 
+	{ 
+		if(strcasecmp($config['allowed_extensions'][$i],$type_of_uploaded_file) == 0)
+		{
+			$allowed_ext = true;		
+		}
+	}
+	
+	if(!$allowed_ext)
+	{
+		$errors .= "\n The uploaded file is not supported file type. ".
+		" Only the following file types are supported: ".implode(',',$config['allowed_extensions']);
+	}
+	
+	//send the email 
+	if(empty($errors))
+	{
+		//copy the temp. uploaded file to uploads folder
+		$path_of_uploaded_file = $config['upload_folder'] . $name_of_uploaded_file;
+		$tmp_path = $_FILES["uploaded_file"]["tmp_name"];
+		
+		if(is_uploaded_file($tmp_path))
+		{
+		    if(!copy($tmp_path,$config['path_of_uploaded_file']))
+		    {
+		    	$errors .= '\n error while copying the uploaded file';
+		    }
+		}
+		
+		//send the email
+		$name = $_POST['name'];
+//		$visitor_email = $_POST['email'];
+		$fax = $_POST['fax'];
+		$user_message = $_POST['message'];
+//		$to_email = 'lgarcia@ausiasmarch.net';//<<--  Generate from $fax variable
+		$to = $config['to_email'];
+		$subject="Enviar fax al numero " . $fax . "Remitido por: " . $user_email;
+		$from = $config['from_email'];
+		$text = "FAX a la Atención de " . $name . "\n Enviado por <" . $user_email . "> desde el CIPFP Ausiàs March\n\n\n $user_message";
+		$message = new Mail_mime(); 
+		$message->setTXTBody($text); 
+		$message->addAttachment($path_of_uploaded_file);
+		$body = $message->get();
+		$extraheaders = array("From"=>$from, "Subject"=>$subject,"Reply-To"=>$user_email, "To"=>$to);
+		$headers = $message->headers($extraheaders);
+
+//		$params["host"] = "mail.edu.gva.es";
+//		$params["port"] = "25";
+//		$params["auth"] = false;
+
+		$params["host"] = $config['host'];
+		$params["port"] = $config['port'];
+		$params["auth"] = true;
+		$params["username"] = $config['username'];
+		$params["password"] = $config['password']; 
+
+		$mail = Mail::factory("smtp", $params);
+		$mail->send($to, $headers, $body);
+		//redirect to 'thank-you page
+		header('Location: thank-you.html');
+	}
+}
+///////////////////////////Functions/////////////////
+// Function to validate against any email injection attempts
+function IsInjected($str)
+{
+  $injections = array('(\n+)',
+              '(\r+)',
+              '(\t+)',
+              '(%0A+)',
+              '(%0D+)',
+              '(%08+)',
+              '(%09+)'
+              );
+  $inject = join('|', $injections);
+  $inject = "/$inject/i";
+  if(preg_match($inject,$str))
+    {
+    return true;
+  }
+  else
+    {
+    return false;
+  }
+}
+if(!empty($errors))
+{
+	echo nl2br($errors);
+}
+?>
+<form method="POST" name="email_form_with_php" 
+action="<?php echo htmlentities($_SERVER['PHP_SELF']); ?>" enctype="multipart/form-data"> 
+<p>
+<label for='fax'>Numero de FAX: </label><br>
+<input type="text" name="fax" >
+</p>
+<p>
+<label for='name'>A la Atencion de: </label><br>
+<input type="text" name="name" >
+</p>
+<p>
+<label for='message'>Message:</label> <br>
+<textarea name="message"></textarea>
+</p>
+<p>
+<label for='uploaded_file'>Select A File To Upload:</label> <br>
+<input type="file" name="uploaded_file">
+</p>
+<input type="submit" value="Submit" name='submit'>
+</form>
+<script language="JavaScript">
+// Code for validating the form
+// Visit http://www.javascript-coder.com/html-form/javascript-form-validation.phtml
+// for details
+var frmvalidator  = new Validator("email_form_with_php");
+frmvalidator.addValidation("name","req","Please provide name"); 
+frmvalidator.addValidation("fax","req","Please provide the destination fax number"); 
+// frmvalidator.addValidation("email","email","Please enter a valid email address"); 
+</script>
+<noscript>
+<small><a href='http://www.html-form-guide.com/email-form/php-email-form-attachment.html'
+>How to attach file to email in PHP</a> article page.</small>
+</noscript>
+
+<?php
+
     echo "<a href=\"privado.php\">Sección privada</a><br>";
     echo "<a href=\"logout.php\">Salir del sistema</a><br>";
   }
