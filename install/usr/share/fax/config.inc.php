@@ -10,4 +10,5 @@ $config["port"] = "465";
 $config["auth"] = true;
 $config["username"] = "admin_moodle@ausiasmarch.net";
 $config["password"] = "T...s"; 
+$config["mail_domain"] = "ausiasmarch.net"; 
 ?>
