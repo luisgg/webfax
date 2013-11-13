@@ -39,15 +39,7 @@
 	}
   }
 ?>
-<html>
-<head>
-	<link rel="stylesheet" type="text/css" href="./css/default.css">
-        <title>Envio de FAX</title>
-</head>
-<body><h1>Envio de FAX</h1>
 <?php
-  if (isset($_SESSION['valid_user'])) {
-    echo "Bienvenido, " . $_SESSION['valid_user'] . "<br>";
 
 // Pear library includes
 // You should have the pear lib installed
@@ -75,7 +67,7 @@ if(isset($_POST['submit']))
 	{
 		$errors .= "\n Name and Email are required fields. ";	
 	}
-	$user_email=$_REQUEST['userid'].'@'.$config["mail_domain"];
+	$user_email=$_SESSION['valid_user'].'@'.$config["mail_domain"];
 	if(IsInjected($user_email))
 	{
 		$errors .= "\n Bad email value!";
@@ -111,7 +103,7 @@ if(isset($_POST['submit']))
 		
 		if(is_uploaded_file($tmp_path))
 		{
-		    if(!copy($tmp_path,$config['path_of_uploaded_file']))
+		    if(!copy($tmp_path,$path_of_uploaded_file))
 		    {
 		    	$errors .= '\n error while copying the uploaded file';
 		    }
@@ -126,7 +118,7 @@ if(isset($_POST['submit']))
 		$to = $config['to_email'];
 		$subject="Enviar fax al numero " . $fax . "Remitido por: " . $user_email;
 		$from = $config['from_email'];
-		$text = "FAX a la Atención de " . $name . "\n Enviado por <" . $user_email . "> desde el CIPFP Ausiàs March\n\n\n $user_message";
+		$text = "FAX a la Atención de " . $name . "\n Enviado por <" . $user_email . "> desde el CIPFP Ausiàs March\n\n\n ". $user_message ."-". $path_of_uploaded_file;
 		$message = new Mail_mime(); 
 		$message->setTXTBody($text); 
 		$message->addAttachment($path_of_uploaded_file);
@@ -173,13 +165,26 @@ function IsInjected($str)
     return false;
   }
 }
-if(!empty($errors))
-{
-	echo nl2br($errors);
-}
 ?>
-<form method="POST" name="email_form_with_php" 
-action="<?php echo htmlentities($_SERVER['PHP_SELF']); ?>" enctype="multipart/form-data"> 
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="./css/default.css">
+        <title>Envio de FAX</title>
+	<!-- a helper script for vaidating the form-->
+	<script language="JavaScript" src="./scripts/gen_validatorv31.js" type="text/javascript"></script>       
+</head>
+<body><h1>Envio de FAX</h1>
+
+<?php
+  if (isset($_SESSION['valid_user'])) {
+    echo "Bienvenido, " . $_SESSION['valid_user'] . "<br>";
+	if(!empty($errors))
+	{
+	echo nl2br($errors);
+	}
+    echo "<form method=\"POST\" name=\"email_form_with_php\"" ;
+    echo "action=\"". htmlentities($_SERVER['PHP_SELF']) ."\" enctype=\"multipart/form-data\">" ;
+$html = <<< EOH
 <p>
 <label for='fax'>Numero de FAX: </label><br>
 <input type="text" name="fax" >
@@ -198,6 +203,7 @@ action="<?php echo htmlentities($_SERVER['PHP_SELF']); ?>" enctype="multipart/fo
 </p>
 <input type="submit" value="Submit" name='submit'>
 </form>
+<a href="logout.php">Salir del sistema</a><br>
 <script language="JavaScript">
 // Code for validating the form
 // Visit http://www.javascript-coder.com/html-form/javascript-form-validation.phtml
@@ -211,13 +217,11 @@ frmvalidator.addValidation("fax","req","Please provide the destination fax numbe
 <small><a href='http://www.html-form-guide.com/email-form/php-email-form-attachment.html'
 >How to attach file to email in PHP</a> article page.</small>
 </noscript>
-
-<?php
-
-    echo "<a href=\"privado.php\">Sección privada</a><br>";
-    echo "<a href=\"logout.php\">Salir del sistema</a><br>";
-  }
-  else //no esta registrado
+EOH;
+  echo($html);
+}
+  else
+  //no esta registrado
     if (isset($_REQUEST['userid'])) { //Ha intentado entrar pero no ha podido;
       echo "ERROR: nombre de usuario o/y contraseña incorrecta/os<br>";
       echo "<a href=\"index.php\">Volver a la pagina principal</a><br>";
