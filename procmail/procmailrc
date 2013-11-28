@@ -1,0 +1,40 @@
+SHELL=/bin/sh
+VERBOSE=yes # OPTIONAL, USED FOR DEBUGGING
+LOGABSTRACT=all # OPTIONAL, USED FOR DEBUGGING
+COMSAT=no
+#MAILDIR="/var/qmail/mailnames/*domain*/*email-acct*/Maildir/"
+#LOGFILE="/var/qmail/mailnames/*domain*/*email-acct*/procmail.log" #OPTIONAL, USED FOR DEBUGGING
+
+# ------ begin recipe ----------------------
+:0
+# Change anything after the Subject:.* to match the emails you want to catch
+* ^X-SinFax-Number:[ ]*[0123456789]+$
+* ^X-SinFax-User-Mail:.+@.+
+# Used to prevent endless looping of emails
+* ! ^X-Loop: sinfax.ausiasmarch.net
+{
+
+:0
+* ^X-SinFax-Number:[ ]*\/[^ ].*
+{
+FAXNUMBER=$MATCH
+
+}
+:0
+* ^X-SinFax-User-Mail:[ ]*\/[^ ].*
+{
+USERMAIL=$MATCH
+}
+
+#:0c:formail.lock
+#| expand | sed -e 's/[ ]*$//g' | sed -e 's/^/ /' > return.tmp
+
+:0:formail.lock
+# Change To: field to contain variable with email addresses
+| ( /usr/bin/formail -I"Received:" -A"X-Loop: sinfax.ausiasmarch.net" -I"To: $SERVER23" \
+-I"From: support@somewhere.com" -I"Subject: $SUBJECT" ; cat return.tmp ; \
+rm -f return.tmp ) | /usr/sbin/sendmail -t
+
+}
+# NOTE: EMAILS WILL NOT BE RE-SENT TO THEIR ORIGINAL MAILBOX
+

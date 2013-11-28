@@ -116,14 +116,16 @@ if(isset($_POST['submit']))
 		$user_message = $_POST['message'];
 //		$to_email = 'lgarcia@ausiasmarch.net';//<<--  Generate from $fax variable
 		$to = $config['to_email'];
-		$subject="Enviar fax al numero " . $fax . "Remitido por: " . $user_email;
+		$subject="Enviar fax al numero " . $fax . " Remitido por: " . $user_email;
 		$from = $config['from_email'];
 		$text = "FAX a la Atención de " . $name . "\n Enviado por <" . $user_email . "> desde el CIPFP Ausiàs March\n\n\n ". $user_message ."-". $path_of_uploaded_file;
 		$message = new Mail_mime(); 
 		$message->setTXTBody($text); 
 		$message->addAttachment($path_of_uploaded_file);
 		$body = $message->get();
-		$extraheaders = array("From"=>$from, "Subject"=>$subject,"Reply-To"=>$user_email, "To"=>$to);
+		$sinfaxnumber = $fax;
+		$sinfaxusermail = $user_email;
+		$extraheaders = array("From"=>$from, "Subject"=>$subject,"Reply-To"=>$user_email, "To"=>$to, "X-SinFax-Number"=>$sinfaxnumber, "X-SinFax-User-Mail"=>$sinfaxusermail);
 		$headers = $message->headers($extraheaders);
 
 //		$params["host"] = "mail.edu.gva.es";
